@@ -13,7 +13,7 @@ einops
 opt_einsum
 cmake # For pykeops support
 # pykeops # Only for S4D. If there are installation problems with pykeops==2.x, try pykeops==1.5
-transformers==4.26.1 # For some schedulers and tokenizers
+transformers==4.48.0 # For some schedulers and tokenizers
 torchvision
 timm
 prettytable
