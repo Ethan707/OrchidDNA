@@ -23,7 +23,7 @@ git-lfs
 # Dataset specific packages
 torchtext # this needs to align with the pytorch version
 datasets # LRA
-torch
+torch==2.5.0
 # genomic specific
 pyfaidx
 polars

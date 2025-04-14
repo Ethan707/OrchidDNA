@@ -333,7 +333,7 @@ class LMBackbone(nn.Module):
         # )
         self.layers = nn.ModuleList(
             [
-                OrchidOperator(d_model, l_max=d_inner, order=2, dropout=embed_dropout)
+                OrchidOperator(d_model, l_max=1024, order=2, dropout=embed_dropout)
                 for _ in range(n_layer)
             ]
         )
