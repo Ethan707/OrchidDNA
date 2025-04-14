@@ -22,10 +22,12 @@ model = {
     # Backbones from this repo
     "model": "src.models.sequence.SequenceModel",
     "lm": "src.models.sequence.long_conv_lm.ConvLMHeadModel",
+    "lm_orchid": "src.models.sequence.long_conv_lm.ConvLMHeadModelOrchid",
     "lm_simple": "src.models.sequence.simple_lm.SimpleLMHeadModel",
     "vit_b_16": "src.models.baselines.vit_all.vit_base_patch16_224",
     "dna_embedding": "src.models.sequence.dna_embedding.DNAEmbeddingModel",
-    "bpnet": "src.models.sequence.hyena_bpnet.HyenaBPNet"
+    "dna_embedding_orchid": "src.models.sequence.dna_embedding.DNAEmbeddingModelOrchid",
+    "bpnet": "src.models.sequence.hyena_bpnet.HyenaBPNet",
 }
 
 layer = {
@@ -38,6 +40,7 @@ layer = {
     "h3": "src.models.sequence.h3.H3",
     "h3-conv": "src.models.sequence.h3_conv.H3Conv",
     "hyena": "src.models.sequence.hyena.HyenaOperator",
+    "orchid": "src.models.sequence.hyena.OrchidOperator",
     "hyena-filter": "src.models.sequence.hyena.HyenaFilter",
     "vit": "src.models.sequence.mha.VitAttention",
 }
@@ -54,9 +57,9 @@ callbacks = {
     "progressive_resizing": "src.callbacks.progressive_resizing.ProgressiveResizing",
     "seqlen_warmup": "src.callbacks.seqlen_warmup.SeqlenWarmup",
     "seqlen_warmup_reload": "src.callbacks.seqlen_warmup_reload.SeqlenWarmupReload",
-    "gpu_affinity": "src.callbacks.gpu_affinity.GpuAffinity"
+    "gpu_affinity": "src.callbacks.gpu_affinity.GpuAffinity",
 }
 
 model_state_hook = {
-    'load_backbone': 'src.models.sequence.long_conv_lm.load_backbone',
+    "load_backbone": "src.models.sequence.long_conv_lm.load_backbone",
 }
