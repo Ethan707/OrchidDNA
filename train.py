@@ -2,26 +2,21 @@ import copy
 import os
 import random
 import time
-from functools import partial, wraps
+from functools import wraps
 from typing import Callable, List, Sequence
 
 import hydra
-import numpy as np
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import wandb
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from tqdm.auto import tqdm
-from pytorch_lightning.strategies.ddp import DDPStrategy
 
 import src.models.nn.utils as U
 import src.utils as utils
 import src.utils.train
-from src.dataloaders import SequenceDataset  # TODO make registry
+from src.dataloaders import SequenceDataset
 from src.tasks import decoders, encoders, tasks
 from src.utils import registry
 from src.utils.optim_groups import add_optimizer_hooks

@@ -28,7 +28,7 @@ model:
   residual_in_fp32: True
   pad_vocab_size_multiple: 8
   layer:
-    _name_: hyena
+    _name_: orchid
     emb_dim: 5
     filter_order: 64
     short_filter_order: 3

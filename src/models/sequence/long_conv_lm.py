@@ -3,7 +3,7 @@ import math
 import re
 from functools import partial
 
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 
 # from collections.abc import Sequence
 
@@ -11,8 +11,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
-
-# from transformers.models.gpt2.configuration_gpt2 import GPT2Config
 
 from einops import rearrange
 
@@ -335,48 +333,6 @@ class LMBackboneOrchid(nn.Module):
     def tie_weights(self):
         if self.process_group is not None:
             sync_shared_params(self, self.process_group)
-
-    # def forward(self, input_ids, position_ids=None, inference_params=None):
-    #     # If using Tensor Parallel with sequence parallel, we combine the batch and the seqlen
-    #     # dimensions so that we can split on it easily, in case of small batch size.
-    #     # Only the attention/SSM layers need to know the seqlen.
-    #     embedding_kwargs = (
-    #         {"combine_batch_seqlen_dim": True}
-    #         if self.process_group is not None and self.sequence_parallel
-    #         else {}
-    #     )
-    #     hidden_states = self.embeddings(
-    #         input_ids, position_ids=position_ids, **embedding_kwargs
-    #     )
-    #     residual = None
-    #     mixer_kwargs = (
-    #         {"seqlen": input_ids.shape[1]}
-    #         if self.process_group is not None and self.sequence_parallel
-    #         else {}
-    #     )
-    #     if inference_params is not None:
-    #         mixer_kwargs["inference_params"] = inference_params
-    #     for layer in self.layers:
-    #         hidden_states, residual = layer(
-    #             hidden_states, residual, mixer_kwargs=mixer_kwargs
-    #         )
-    #     if not self.fused_dropout_add_ln:
-    #         dropped = self.drop_f(hidden_states)
-    #         residual = (dropped + residual) if residual is not None else dropped
-    #         hidden_states = self.ln_f(residual.to(dtype=self.ln_f.weight.dtype))
-    #     else:
-    #         # Set prenorm=False here since we don't need the residual
-    #         hidden_states = dropout_add_layer_norm(
-    #             hidden_states,
-    #             residual,
-    #             self.ln_f.weight,
-    #             self.ln_f.bias,
-    #             self.drop_f.p if self.training else 0.0,
-    #             self.ln_f.eps,
-    #             prenorm=False,
-    #             residual_in_fp32=self.residual_in_fp32,
-    #         )
-    #     return hidden_states
 
     def forward(self, input_ids, position_ids=None):
         hidden_states = self.embeddings(input_ids, position_ids=position_ids)

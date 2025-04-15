@@ -10,7 +10,7 @@ from functools import partial
 from einops import rearrange, repeat
 
 try:
-    from src.ops.fftconv import fftconv_ref, fftconv_func, fftconv_heads_ref
+    from src.ops.fftconv import fftconv_ref, fftconv_func
 
 except ImportError:
     fftconv_func = None
@@ -455,7 +455,6 @@ class HyenaOperator(nn.Module):
         return self.d_model
 
 
-# ========================== Orchid 模块 ==========================
 def orchid_conv(u, k, bias, dilation=2):
     weight = k.unsqueeze(1)  # shape: (C, 1, kernel_size)
     pad = dilation * (k.shape[-1] - 1) // 2
@@ -472,17 +471,10 @@ def orchid_conv(u, k, bias, dilation=2):
 
 
 class ConvKernelNN(nn.Module):
-    """
-    根据论文的理论，通过 depthwise 卷积和 FFT 求幅值，
-    从输入 v (B, L, d_model) 生成满足 shift-invariance 的数据依赖核，
-    输出形状 (1, d_model, L)
-    """
-
     def __init__(self, d_model, seq_len, hidden_dim=None):
         super().__init__()
         if hidden_dim is None:
-            hidden_dim = d_model  # 设置 hidden_dim 为 d_model
-        # 使用 depthwise 卷积：groups = d_model
+            hidden_dim = d_model
         self.conv1 = nn.Conv1d(
             in_channels=d_model,
             out_channels=hidden_dim,
@@ -502,17 +494,13 @@ class ConvKernelNN(nn.Module):
 
     def forward(self, v):
         # v: (B, L, d_model)
-        x = v.transpose(1, 2)  # 转换为 (B, d_model, L)
+        x = v.transpose(1, 2)
         x = self.conv1(x)
         x = self.relu(x)
         x = self.conv2(x)
-        # FFT 得到频域表示
         x_f = torch.fft.rfft(x, n=self.seq_len, dim=-1)
-        # 取幅值去除相位信息
         x_abs = torch.abs(x_f)
-        # 平均聚合 batch 维度，得到 shape (1, d_model, L_f)
         x_mean = x_abs.mean(dim=0, keepdim=True)
-        # 逆 FFT 还原到时域
         x_ifft = torch.fft.irfft(x_mean, n=self.seq_len, dim=-1)
         return x_ifft  # (1, d_model, L)
 
@@ -573,9 +561,6 @@ class OrchidFilter(OptimModule):
 
 
 class DiscreteTransform(nn.Module):
-    """
-    通用离散变换模块，支持 "dct" 和 "fft" 模式，此处默认使用 FFT
-    """
 
     def __init__(self, mode="dct", norm="ortho", dim=1):
         super().__init__()
@@ -603,11 +588,11 @@ class DiscreteTransform(nn.Module):
 class OrchidOperator(nn.Module):
     def __init__(
         self,
-        d_model,  #
-        l_max,  #
-        order=2,  #
-        dropout=0.0,  #
-        filter_dropout=0.0,  #
+        d_model,
+        l_max,
+        order=2,
+        dropout=0.0,
+        filter_dropout=0.0,
         dilation=2,
         kernel_size=3,
         **filter_args,
@@ -639,49 +624,33 @@ class OrchidOperator(nn.Module):
     def forward(self, u, *args, **kwargs):
         l = u.size(-2)
         l_filter = min(l, self.l_max)
-        u = self.in_proj(u)  # (B, l, inner_width)
-        u = rearrange(u, "b l d -> b d l")  # (B, inner_width, l)
-        uc = self.short_filter(u)[..., :l_filter]  # (B, inner_width, l_filter)
-        *x, v = uc.split(
-            self.d_model, dim=1
-        )  # 分割成多个块，每块 (B, d_model, l_filter)
+        u = self.in_proj(u)
+        u = rearrange(u, "b l d -> b d l")
+        uc = self.short_filter(u)[..., :l_filter]
+        *x, v = uc.split(self.d_model, dim=1)
 
-        # 生成输入依赖核 h_adapt_f
-        h_adapt_f = self.conv_kernel_nn(
-            v.transpose(1, 2)
-        )  # 初始输出 (1, d_model, l_max)
-        h_adapt_f = h_adapt_f[..., :l_filter]  # 裁剪到 (1, d_model, l_filter)
-        h_adapt_f = rearrange(
-            h_adapt_f, "b c l -> b l c"
-        )  # 转换为 (1, l_filter, d_model)
-        h_adapt_f = self.transform(
-            h_adapt_f
-        )  # 经过 FFT，输出 (1, l_filter, d_model_fft)，其中 d_model_fft = d_model//2+1
+        h_adapt_f = self.conv_kernel_nn(v.transpose(1, 2))
+        h_adapt_f = h_adapt_f[..., :l_filter]
+        h_adapt_f = rearrange(h_adapt_f, "b c l -> b l c")
+        h_adapt_f = self.transform(h_adapt_f)
 
-        # 生成静态核 h0
-        h_0 = self.filter_fn.filter(l_filter)  # (1, l_filter, d_model)
-        h_0 = rearrange(h_0, "1 l d -> l d")  # (l_filter, d_model)
-        h_0_f = self.transform(h_0.unsqueeze(0))  # (1, l_filter, d_model_fft)
+        h_0 = self.filter_fn.filter(l_filter)
+        h_0 = rearrange(h_0, "1 l d -> l d")
+        h_0_f = self.transform(h_0.unsqueeze(0))
 
-        # 初步融合：计算 y = v * x[0]
         y = v * x[0]  # (B, d_model, l_filter)
         y = rearrange(y, "b d l -> b l d")  # (B, l_filter, d_model)
         y_f = self.transform(y)  # (B, l_filter, d_model_fft)
 
-        # 结合静态核与自适应核：两者形状均为 (1, l_filter, d_model_fft)
-        combined_kernel = h_0_f + h_adapt_f  # (1, l_filter, d_model_fft)
-        y_new = torch.fft.irfft(
-            y_f * combined_kernel, dim=-1
-        )  # (B, l_filter, d_model)  (默认逆变换还原回原始时域维度)
-        y_new = y_new[..., :l_filter]  # 截断确保尺寸为 (B, l_filter, d_model)
+        combined_kernel = h_0_f + h_adapt_f
+        y_new = torch.fft.irfft(y_f * combined_kernel, dim=-1)
+        y_new = y_new[..., :l_filter]  # (B, l_filter, d_model)
 
-        # 对于第二个分支 x[1]，其形状原本为 (B, d_model, l_filter)
-        # 转置为 (B, l_filter, d_model) 再与 y_new 做乘法
         if len(x) > 1:
-            x1 = rearrange(x[1], "b d l -> b l d")  # (B, l_filter, d_model)
-            y = y_new * x1  # 两者形状一致 (B, l_filter, d_model)
+            x1 = rearrange(x[1], "b d l -> b l d")
+            y = y_new * x1
         else:
             y = y_new
 
-        y = self.out_proj(y)  # (B, l_filter, d_model)
+        y = self.out_proj(y)
         return y

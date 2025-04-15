@@ -1,8 +1,10 @@
-""" Utilities for dealing with collection objects (lists, dicts) and configs """
-from typing import Sequence, Mapping, Optional, Callable
+"""Utilities for dealing with collection objects (lists, dicts) and configs"""
+
+from typing import Sequence, Mapping, Callable
 import functools
 import hydra
 from omegaconf import ListConfig, DictConfig
+
 
 # TODO this is usually used in a pattern where it's turned into a list, so can just do that here
 def is_list(x):
@@ -58,8 +60,8 @@ def extract_attrs_from_obj(obj, *attrs):
 def auto_assign_attrs(cls, **kwargs):
     for k, v in kwargs.items():
         setattr(cls, k, v)
-        
-        
+
+
 def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
     """
     registry: Dictionary mapping names to functions or target paths (e.g. {'model': 'models.SequenceModel'})
@@ -122,5 +124,3 @@ def omegaconf_filter_keys(d, fn=None):
         )
     else:
         return d
-
-

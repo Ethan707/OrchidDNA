@@ -5,7 +5,6 @@ from einops import rearrange, reduce
 
 import src.models.nn.utils as U
 import src.utils as utils
-import src.utils.config
 import src.utils.train
 
 log = src.utils.train.get_logger(__name__)

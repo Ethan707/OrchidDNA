@@ -1,11 +1,9 @@
-""" Utils for the training loop. Copied from https://github.com/HazyResearch/transformers/blob/master/src/utils/utils.py """
+"""Utils for the training loop. Copied from https://github.com/HazyResearch/transformers/blob/master/src/utils/utils.py"""
+
 import logging
-import os
 import warnings
-from typing import List, Sequence
 
 import torch.nn as nn
-import pytorch_lightning as pl
 import rich.syntax
 import rich.tree
 from omegaconf import DictConfig, OmegaConf
@@ -47,13 +45,23 @@ def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
 
     # this ensures all logging levels get marked with the rank zero decorator
     # otherwise logs would get multiplied for each GPU process in multi-GPU setup
-    for level in ("debug", "info", "warning", "error", "exception", "fatal", "critical"):
+    for level in (
+        "debug",
+        "info",
+        "warning",
+        "error",
+        "exception",
+        "fatal",
+        "critical",
+    ):
         setattr(logger, level, rank_zero_only(getattr(logger, level)))
 
     return logger
 
 
-def process_config(config: DictConfig) -> DictConfig: # TODO because of filter_keys, this is no longer in place
+def process_config(
+    config: DictConfig,
+) -> DictConfig:  # TODO because of filter_keys, this is no longer in place
     """A couple of optional utilities, controlled by main config file:
     - disabling warnings
     - easier access to debug mode
@@ -66,7 +74,7 @@ def process_config(config: DictConfig) -> DictConfig: # TODO because of filter_k
 
     # Filter out keys that were used just for interpolation
     # config = dictconfig_filter_keys(config, lambda k: not k.startswith('__'))
-    config = omegaconf_filter_keys(config, lambda k: not k.startswith('__'))
+    config = omegaconf_filter_keys(config, lambda k: not k.startswith("__"))
 
     # enable adding new keys to config
     OmegaConf.set_struct(config, False)
@@ -81,7 +89,9 @@ def process_config(config: DictConfig) -> DictConfig: # TODO because of filter_k
         config.trainer.fast_dev_run = True
 
         # force debugger friendly configuration
-        log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
+        log.info(
+            "Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>"
+        )
         # Debuggers don't like GPUs or multiprocessing
         if config.trainer.get("gpus"):
             config.trainer.gpus = 0
@@ -94,6 +104,7 @@ def process_config(config: DictConfig) -> DictConfig: # TODO because of filter_k
     # OmegaConf.set_struct(config, True) # [21-09-17 AG] I need this for .pop(_name_) pattern among other things
 
     return config
+
 
 @rank_zero_only
 def print_config(
@@ -129,18 +140,25 @@ def print_config(
         with open("config_tree.txt", "w") as fp:
             rich.print(tree, file=fp)
 
+
 def log_optimizer(logger, optimizer, keys):
-    """ Log values of particular keys from the optimizer's param groups """
+    """Log values of particular keys from the optimizer's param groups"""
     keys = sorted(keys)
     for i, g in enumerate(optimizer.param_groups):
         group_hps = {k: g.get(k, None) for k in keys}
-        logger.info(' | '.join([
-            f"Optimizer group {i}",
-            f"{len(g['params'])} tensors",
-        ] + [f"{k} {v}" for k, v in group_hps.items()]))
+        logger.info(
+            " | ".join(
+                [
+                    f"Optimizer group {i}",
+                    f"{len(g['params'])} tensors",
+                ]
+                + [f"{k} {v}" for k, v in group_hps.items()]
+            )
+        )
+
 
 class OptimModule(nn.Module):
-    """ Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters """
+    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters"""
 
     def register(self, name, tensor, lr=None, wd=0.0):
         """Register a tensor with a configurable learning rate and 0 weight decay"""
@@ -151,6 +169,8 @@ class OptimModule(nn.Module):
             self.register_parameter(name, nn.Parameter(tensor))
 
             optim = {}
-            if lr is not None: optim["lr"] = lr
-            if wd is not None: optim["weight_decay"] = wd
+            if lr is not None:
+                optim["lr"] = lr
+            if wd is not None:
+                optim["weight_decay"] = wd
             setattr(getattr(self, name), "_optim", optim)

@@ -3,7 +3,6 @@ optimizer = {
     "adamw": "torch.optim.AdamW",
     "rmsprop": "torch.optim.RMSprop",
     "sgd": "torch.optim.SGD",
-    "lamb": "src.utils.optim.lamb.JITLamb",
 }
 
 scheduler = {
@@ -23,26 +22,15 @@ model = {
     "model": "src.models.sequence.SequenceModel",
     "lm": "src.models.sequence.long_conv_lm.ConvLMHeadModel",
     "lm_orchid": "src.models.sequence.long_conv_lm.ConvLMHeadModelOrchid",
-    "lm_simple": "src.models.sequence.simple_lm.SimpleLMHeadModel",
-    "vit_b_16": "src.models.baselines.vit_all.vit_base_patch16_224",
     "dna_embedding": "src.models.sequence.dna_embedding.DNAEmbeddingModel",
     "dna_embedding_orchid": "src.models.sequence.dna_embedding.DNAEmbeddingModelOrchid",
-    "bpnet": "src.models.sequence.hyena_bpnet.HyenaBPNet",
 }
 
 layer = {
     "id": "src.models.sequence.base.SequenceIdentity",
-    "ff": "src.models.sequence.ff.FF",
-    "mha": "src.models.sequence.mha.MultiheadAttention",
-    "s4d": "src.models.sequence.ssm.s4d.S4D",
-    "s4_simple": "src.models.sequence.ssm.s4_simple.SimpleS4Wrapper",
-    "long-conv": "src.models.sequence.long_conv.LongConv",
-    "h3": "src.models.sequence.h3.H3",
-    "h3-conv": "src.models.sequence.h3_conv.H3Conv",
     "hyena": "src.models.sequence.hyena.HyenaOperator",
     "orchid": "src.models.sequence.hyena.OrchidOperator",
     "hyena-filter": "src.models.sequence.hyena.HyenaFilter",
-    "vit": "src.models.sequence.mha.VitAttention",
 }
 
 callbacks = {
@@ -55,9 +43,7 @@ callbacks = {
     "rich_model_summary": "pytorch_lightning.callbacks.RichModelSummary",
     "rich_progress_bar": "pytorch_lightning.callbacks.RichProgressBar",
     "progressive_resizing": "src.callbacks.progressive_resizing.ProgressiveResizing",
-    "seqlen_warmup": "src.callbacks.seqlen_warmup.SeqlenWarmup",
     "seqlen_warmup_reload": "src.callbacks.seqlen_warmup_reload.SeqlenWarmupReload",
-    "gpu_affinity": "src.callbacks.gpu_affinity.GpuAffinity",
 }
 
 model_state_hook = {
